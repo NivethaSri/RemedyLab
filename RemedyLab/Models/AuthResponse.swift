@@ -35,11 +35,11 @@ struct PatientSignupRequest: Codable {
 }
 
 
-struct PatientResponse: Codable {
-    let id: String
-    let name: String
-    let email: String
-}
+//struct PatientResponse: Codable {
+//    let id: String
+//    let name: String
+//    let email: String
+//}
 
 struct DoctorSignupRequest: Codable {
     let name: String

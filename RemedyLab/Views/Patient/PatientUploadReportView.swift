@@ -3,21 +3,21 @@ import SwiftData
 
 struct PatientUploadReportView: View {
     var onUploadComplete: () -> Void
+
     @Environment(\.modelContext) private var modelContext
-    @EnvironmentObject var userAuthVM: UserAuthViewModel  // ✅ Unified Auth ViewModel
+    @EnvironmentObject var userAuthVM: UserAuthViewModel
+    @StateObject private var viewModel: PatientUploadReportViewModel
+
     @State private var selectedFileURL: URL?
     @State private var reportTitle = ""
     @State private var selectedDoctorID = ""
-    @State private var errorMessage = ""
     @State private var isFileImporterPresented = false
     @Environment(\.dismiss) private var dismiss
 
-    // ✅ Currently hardcoded doctors
-    private let availableDoctors: [AvailableDoctor] = [
-        AvailableDoctor(name: "Dr. Nivetha M", specialization: "Cardiologist", experience: 10, profileImageName: "person.fill"),
-        AvailableDoctor(name: "Dr. Arjun S", specialization: "Orthopedic", experience: 8, profileImageName: "stethoscope"),
-        AvailableDoctor(name: "Dr. Priya V", specialization: "Pediatrician", experience: 5, profileImageName: "cross.case.fill")
-    ]
+    init(onUploadComplete: @escaping () -> Void, modelContext: ModelContext) {
+        self.onUploadComplete = onUploadComplete
+        _viewModel = StateObject(wrappedValue: PatientUploadReportViewModel(modelContext: modelContext))
+    }
 
     var body: some View {
         VStack(spacing: 20) {
@@ -27,43 +27,31 @@ struct PatientUploadReportView: View {
             TextField("Report Title", text: $reportTitle)
                 .textFieldStyle(.roundedBorder)
 
-            Button("Select File") {
-                isFileImporterPresented = true
-            }
-            .buttonStyle(.borderedProminent)
+            Button("Select File") { isFileImporterPresented = true }
+                .buttonStyle(.borderedProminent)
 
             if let fileURL = selectedFileURL {
                 Text("Selected File: \(fileURL.lastPathComponent)")
                     .font(.footnote)
             }
 
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Assign Doctor").bold()
+            doctorPickerSection
 
-                Picker("Select Doctor", selection: $selectedDoctorID) {
-                    Text("Select Doctor").tag("")
-                    ForEach(availableDoctors) { doctor in
-                        Text(doctor.name).tag(doctor.id.uuidString)
-                    }
-                }
-                .pickerStyle(.menu)
-
-                if let selected = availableDoctors.first(where: { $0.id.uuidString == selectedDoctorID }) {
-                    AvailableDoctorRowView(doctor: selected)
-                        .padding(.top, 5)
-                }
-            }
-
-            if !errorMessage.isEmpty {
-                Text(errorMessage)
+            if let error = viewModel.errorMessage {
+                Text(error)
                     .foregroundColor(.red)
                     .font(.footnote)
+            }
+
+            if viewModel.isLoading {
+                ProgressView("Processing...")
             }
 
             Button("Upload Report") {
                 handleUpload()
             }
             .buttonStyle(.borderedProminent)
+            .disabled(viewModel.isLoading)
 
             Spacer()
         }
@@ -74,76 +62,69 @@ struct PatientUploadReportView: View {
             allowsMultipleSelection: false
         ) { result in
             switch result {
-            case .success(let urls):
-                selectedFileURL = urls.first
-            case .failure(let error):
-                errorMessage = "Failed to select file: \(error.localizedDescription)"
+            case .success(let urls): selectedFileURL = urls.first
+            case .failure(let error): viewModel.errorMessage = error.localizedDescription
+            }
+        }
+        .onAppear {
+            Task { await viewModel.fetchDoctors() }
+        }
+        .onChange(of: viewModel.uploadSuccess) { success in
+            if success {
+                onUploadComplete()
+                dismiss()
             }
         }
     }
 
-    // ✅ Final handleUpload() Logic
+    private var doctorPickerSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Assign Doctor").bold()
+
+            Picker("Select Doctor", selection: $selectedDoctorID) {
+                Text("Select Doctor").tag("")
+                ForEach(viewModel.doctorListResponses) { doctor in
+                    Text("\(doctor.name) - \(doctor.specialization)")
+                        .tag(doctor.id)
+                }
+            }
+            .pickerStyle(.menu)
+            if let selected = viewModel.doctorListResponses.first(where: { $0.id == selectedDoctorID }) {
+                                    VStack(alignment: .leading, spacing: 5) {
+                                        Text("👨‍⚕️ \(selected.name)")
+                                        Text("🩺 \(selected.specialization)")
+                                        Text("🧑‍⚕️ Experience: \(selected.experience) yrs")
+                                    }
+                                    .font(.footnote)
+                                    .padding(.top, 5)
+                                }
+        }
+    }
+
     private func handleUpload() {
         guard let user = userAuthVM.currentUser, user.role == "patient" else {
-            errorMessage = "Patient not authenticated"
+            viewModel.errorMessage = "Patient not authenticated"
             return
         }
         guard let fileURL = selectedFileURL else {
-            errorMessage = "Please select a file"
+            viewModel.errorMessage = "Please select a file"
             return
         }
         guard !reportTitle.isEmpty else {
-            errorMessage = "Please enter a report title"
+            viewModel.errorMessage = "Please enter a report title"
             return
         }
         guard !selectedDoctorID.isEmpty else {
-            errorMessage = "Please assign a doctor"
+            viewModel.errorMessage = "Please assign a doctor"
             return
         }
 
-        let newReport = HealthReport(
-            patientID: user.id,
-            title: reportTitle,
-            filePath: fileURL.path,
-            uploadDate: Date(),
-            assignedDoctorID: selectedDoctorID
-        )
-
-        do {
-            modelContext.insert(newReport)
-            try modelContext.save()  // ✅ Persist data
-            errorMessage = ""
-            onUploadComplete()
-            dismiss()
-        } catch {
-            errorMessage = "Failed to save report: \(error.localizedDescription)"
+        Task {
+            await viewModel.uploadReport(
+                fileURL: fileURL,
+                patientID: user.id,
+                doctorID: selectedDoctorID
+            )
         }
-    }
-}
-
-// ✅ Preview
-struct PatientUploadReportView_Previews: PreviewProvider {
-    static var previews: some View {
-        let schema = Schema([Patient.self, HealthReport.self])
-        let container = try! ModelContainer(for: schema)
-
-        let mockUser = Patient(name: "Preview User", email: "preview@example.com", password: "password")
-        container.mainContext.insert(mockUser)
-
-        let userAuthVM = UserAuthViewModel(modelContext: container.mainContext)
-        userAuthVM.currentUser = User(
-            id: UUID().uuidString,
-            name: "Preview User",
-            email: "preview@example.com",
-            password: "password",
-            role: "patient",
-            createdAt: Date()
-        )
-
-        return PatientUploadReportView(onUploadComplete: {})
-            .environmentObject(userAuthVM)
-            .modelContainer(container)
-            .frame(width: 500, height: 700)
-            .previewDisplayName("Patient Upload Report Preview")
     }
 }

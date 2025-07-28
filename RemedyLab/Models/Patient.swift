@@ -21,3 +21,27 @@ class Patient {
         self.password = password
     }
 }
+
+struct UploadReportResponse: Codable {
+    let status: String
+    let message: String
+    let data: ReportData
+}
+
+struct ReportData: Codable {
+    let report_id: String
+    let file_name: String
+    let file_path: String
+    let uploaded_at: String
+    let patient_id: String
+    let doctor_id: String
+    let metrics: [Metric]
+}
+
+struct Metric: Codable, Hashable {
+    let unit: String
+    let value: String
+    let test_name: String
+    let technology: String
+    let normal_range: String
+}

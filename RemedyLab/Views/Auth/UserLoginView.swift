@@ -12,9 +12,11 @@ struct UserLoginView: View {
     @EnvironmentObject var usertAuthVM: UserAuthViewModel
     @Binding var selectedRole: String?
     @Binding var path: NavigationPath
-    
-    @State private var email = ""
-    @State private var password = ""
+    @State private var email: String = "nivetha@gmail.com"
+    @State private var password: String = "test123"
+
+//    @State private var email = ""
+//    @State private var password = ""
     @State private var errorMessage = ""
     @State private var isLoading = false
     

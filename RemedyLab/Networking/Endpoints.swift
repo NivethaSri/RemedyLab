@@ -13,6 +13,8 @@ enum APIEndpoints {
     static let uploadRecommendation = "health-report/add-recommendation"
     static let patientSignup = "auth/patient/signup"
     static let doctorSignup = "auth/doctor/signup"
+    static let doctorList = "doctor/list"
+    static let getPatientReportList = "patient/reports"
 
     // Add more as you grow
 }

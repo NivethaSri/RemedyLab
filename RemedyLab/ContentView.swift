@@ -8,6 +8,8 @@ struct ContentView: View {
     var body: some View {
         NavigationStack(path: $path) {
             RoleSelectionView(selectedRole: $selectedRole, path: $path)
+
+                // 🔹 This handles your existing string-based navigation
                 .navigationDestination(for: String.self) { value in
                     switch value {
                     case "doctorLogin":
@@ -38,6 +40,15 @@ struct ContentView: View {
                         Text("Unknown screen")
                     }
                 }
+
+                // 🔹 This handles when you append a HealthReportResponse directly
+                .navigationDestination(for: HealthReportResponse.self) { report in
+                    ReportViewerView(reportfilePath: report.file_path) // ✅ Opens the PDF
+                }
+                .navigationDestination(for: DoctorReportResponse.self) { report in
+                    ReportViewerView(reportfilePath: report.file_path) // doctor report
+                       }
         }
+
     }
 }

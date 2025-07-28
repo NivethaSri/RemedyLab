@@ -1,61 +1,49 @@
-//
-//  ReportViewerView.swift
-//  RemedyLab
-//
-//  Created by Nivetha Sri on 18/07/25.
-//
-
+import SwiftUICore
 import SwiftUI
-
 struct ReportViewerView: View {
-    let report: HealthReport
+    let reportfilePath: String
+
+    @State private var localFileURL: URL?
+    @State private var isLoading = true
+    @State private var errorMessage: String?
+
     var body: some View {
         VStack {
-            Text("Viewing Report: \(report.title)")
-                .font(.title2)
-                .padding()
-            
-            if let decodedPath = report.filePath.removingPercentEncoding {
-                let fileURL = URL(fileURLWithPath: decodedPath)
-                
-                if FileManager.default.fileExists(atPath: fileURL.path) {
-#if os(macOS)
-                    PDFKitMacView(url: fileURL)
-#elseif os(iOS)
-                    PDFKitiOSView(url: fileURL)
-#endif
-                } else {
-                    Text("File not found at path: \(fileURL.path)")
-                        .foregroundColor(.red)
-                }
-            } else {
-                Text("Invalid file path.")
-                    .foregroundColor(.red)
+            if isLoading {
+                ProgressView("Loading PDF...")
+            } else if let url = localFileURL {
+                PDFKitMacView(url: url)
+            } else if let error = errorMessage {
+                Text(error).foregroundColor(.red)
             }
-            
-            Spacer()
         }
-        .padding()
-        .navigationTitle("   \(report.title)")
-        .onAppear {
-            debugPrint("Report file path: \(report.filePath)")
+        .onAppear { loadReport() }
+    }
+
+    private func loadReport() {
+        Task {
+            do {
+                // Check if file already exists locally
+                let localURL = getLocalFileURL()
+                if FileManager.default.fileExists(atPath: localURL.path) {
+                    self.localFileURL = localURL
+                    self.isLoading = false
+                } else {
+                    // Download from API
+                    let downloadedURL = try await APIService.shared.downloadReport(filePath: reportfilePath)
+                    self.localFileURL = downloadedURL
+                    self.isLoading = false
+                }
+            } catch {
+                self.errorMessage = error.localizedDescription
+                self.isLoading = false
+            }
         }
     }
-    
-}
-struct ReportViewerView_Previews: PreviewProvider {
-    static var previews: some View {
-        ReportViewerView(
-            report: HealthReport(
-                patientID: UUID().uuidString,
-                title: "Sample PDF Report",
-                filePath: "file:///Users/username/Documents/sample.pdf",
-                uploadDate: Date(),
-                assignedDoctorID: UUID().uuidString
-            )
-        )
-        .previewLayout(.sizeThatFits)
-        .frame(width: 400, height: 300)
-        .padding()
+
+    private func getLocalFileURL() -> URL {
+        let fileName = URL(fileURLWithPath: reportfilePath).lastPathComponent
+        return FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent(fileName)
     }
 }

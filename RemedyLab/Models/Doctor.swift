@@ -29,3 +29,10 @@ class Doctor {
         self.createdAt = createdAt
     }
 }
+
+struct DoctorListResponse: Codable, Identifiable {
+    let id: String
+    let name: String
+    let specialization: String
+    let experience: String
+}
