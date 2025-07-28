@@ -71,9 +71,27 @@ struct DoctorDashboardView: View {
 
                 Button("View AI Recommendation") {
                     selectedReport = report
-                    path.append("recommendationViewer")
+                    let navData = AIRecommendationResponse(
+                            report_id: report.id,
+                            ai_recommendation: report.ai_recommendation ?? "", title: "AI Recommandation", canEdit: true
+                        )
+                    path.append(navData)
                 }
                 .buttonStyle(.borderedProminent)
+                
+                Button("Final Recommendation") {
+                        if let doctorRecommendation = report.doctor_recommendation {
+                            // Navigate to RecommendationViewerView but load doctor's recommendation
+                            path.append(
+                                AIRecommendationResponse(
+                                    report_id: report.id,
+                                    ai_recommendation: doctorRecommendation, title: "Final Recommendation", canEdit: true
+                                )
+                            )
+                        }
+                    }
+                .buttonStyle(.borderedProminent)
+                    .disabled(report.doctor_recommendation == nil) //
             }
         }
         .padding()

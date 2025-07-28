@@ -167,6 +167,61 @@ class APIService {
             try data.write(to: localURL, options: .atomic)
             return localURL
         }
+    func generateAIRecommendation(reportID: String) async throws -> AIRecommendationResponse {
+            guard let url = URL(string: "\(baseURL)/ai/doctor/generate-recommendation") else {
+                throw APIError.invalidURL
+            }
+
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+            let payload = ["report_id": reportID]
+            request.httpBody = try JSONEncoder().encode(payload)
+
+            let (data, response) = try await URLSession.shared.data(for: request)
+            try validateResponse(data: data, response: response)
+
+            return try decodeResponse(data, responseType: AIRecommendationResponse.self)
+        }
+    func saveDoctorRecommendation(reportID: String, recommendation: String) async throws {
+           guard let url = URL(string: "\(baseURL)/ai/doctor/save-recommendation") else {
+               throw APIError.invalidURL
+           }
+
+           var request = URLRequest(url: url)
+           request.httpMethod = "POST"
+           request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+           let payload: [String: String] = [
+               "report_id": reportID,
+               "doctor_recommendation": recommendation
+           ]
+
+           request.httpBody = try JSONEncoder().encode(payload)
+
+           let (data, response) = try await URLSession.shared.data(for: request)
+           try validateResponse(data: data, response: response)
+       }
+    func fetchDoctorRecommendation(reportID: String) async throws -> DoctorRecommendationResponse {
+          let url = "\(baseURL)/ai/doctor/get-recommendation/\(reportID)"
+          guard let requestURL = URL(string: url) else {
+              throw APIError.invalidURL
+          }
+
+          var request = URLRequest(url: requestURL)
+          request.httpMethod = "GET"
+          request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+          let (data, response) = try await URLSession.shared.data(for: request)
+
+          guard let httpResponse = response as? HTTPURLResponse,
+                httpResponse.statusCode == 200 else {
+              throw APIError.decodingError
+          }
+
+          return try JSONDecoder().decode(DoctorRecommendationResponse.self, from: data)
+      }
 }
 
 extension Data {
@@ -184,7 +239,10 @@ struct HealthReportResponse: Codable, Identifiable, Hashable {
     let file_path: String
     let uploaded_at: String
     let ai_recommendation: String?
+    let doctor_recommendation: String?
+
     let doctor: DoctorResponse
+      // ✅ New
 }
 
 struct DoctorResponse: Codable, Hashable {
@@ -201,6 +259,8 @@ struct DoctorReportResponse: Codable, Identifiable, Hashable {
     let uploaded_at: String
     let patient: PatientResponse
     let metrics: [Metric]
+    let ai_recommendation: String?        // ✅ New
+    let doctor_recommendation: String?    // ✅ New
 }
 
 struct PatientResponse: Codable, Hashable {
@@ -210,3 +270,15 @@ struct PatientResponse: Codable, Hashable {
 }
 
 
+struct AIRecommendationResponse: Codable, Hashable {
+    let report_id: String
+    let ai_recommendation: String
+    let title: String
+    let canEdit : Bool
+
+}
+struct DoctorRecommendationResponse: Codable, Hashable {
+    let report_id: String
+    let doctor_recommendation: String?
+    let patient_id: String
+}
