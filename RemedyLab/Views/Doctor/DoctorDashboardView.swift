@@ -6,6 +6,9 @@ struct DoctorDashboardView: View {
     @EnvironmentObject var userAuthVM: UserAuthViewModel
     @StateObject private var viewModel = DoctorDashboardViewModel()
     @State private var selectedReport: DoctorReportResponse?
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var previousPathCount = 0
+    @State private var loadingReportID: String? // ✅ Track which report is loading
 
     var body: some View {
         VStack(spacing: 20) {
@@ -14,9 +17,19 @@ struct DoctorDashboardView: View {
             logoutButton
         }
         .onAppear {
-            if let doctor = userAuthVM.currentUser {
-                viewModel.fetchReports(for: doctor.id)
+            reloadReports()
+        }
+        .onChange(of: path.count) { oldCount, newCount in
+            if newCount < oldCount {
+                reloadReports() // Reload when user navigates back
             }
+            previousPathCount = newCount
+        }
+    }
+
+    private func reloadReports() {
+        if let doctor = userAuthVM.currentUser {
+            viewModel.fetchReports(for: doctor.id)
         }
     }
 
@@ -65,33 +78,53 @@ struct DoctorDashboardView: View {
             HStack(spacing: 16) {
                 Button("View Report") {
                     selectedReport = report
-                    path.append(report) // ✅ Navigate with report object
+                    path.append(report)
                 }
                 .buttonStyle(.bordered)
 
-                Button("View AI Recommendation") {
-                    selectedReport = report
-                    let navData = AIRecommendationResponse(
-                            report_id: report.id,
-                            ai_recommendation: report.ai_recommendation ?? "", title: "AI Recommandation", canEdit: true
-                        )
-                    path.append(navData)
-                }
-                .buttonStyle(.borderedProminent)
-                
-                Button("Final Recommendation") {
-                        if let doctorRecommendation = report.doctor_recommendation {
-                            // Navigate to RecommendationViewerView but load doctor's recommendation
-                            path.append(
-                                AIRecommendationResponse(
+                // ✅ AI Recommendation Button
+                if loadingReportID == report.id {
+                    ProgressView() // 🔄 Show loading indicator
+                        .progressViewStyle(CircularProgressViewStyle())
+                        .frame(width: 30, height: 30)
+                } else {
+                    Button("View AI Recommendation") {
+                        Task {
+                            loadingReportID = report.id // Start loading
+                            do {
+                                let aiText = try await viewModel.getAIRecommendation(for: report)
+                                let navData = AIRecommendationNavResponse(
                                     report_id: report.id,
-                                    ai_recommendation: doctorRecommendation, title: "Final Recommendation", canEdit: true
+                                    ai_recommendation: aiText,
+                                    title: "AI Recommendation",
+                                    canEdit: true
                                 )
-                            )
+                                selectedReport = report
+                                path.append(navData)
+                            } catch {
+                                print("❌ Error generating recommendation:", error.localizedDescription)
+                            }
+                            loadingReportID = nil // Stop loading
                         }
                     }
+                    .buttonStyle(.borderedProminent)
+                }
+
+                // ✅ Final Recommendation Button
+                Button("Final Recommendation") {
+                    if let doctorRecommendation = report.doctor_recommendation {
+                        path.append(
+                            AIRecommendationNavResponse(
+                                report_id: report.id,
+                                ai_recommendation: doctorRecommendation,
+                                title: "Final Recommendation",
+                                canEdit: true
+                            )
+                        )
+                    }
+                }
                 .buttonStyle(.borderedProminent)
-                    .disabled(report.doctor_recommendation == nil) //
+                .disabled(report.doctor_recommendation == nil)
             }
         }
         .padding()

@@ -84,13 +84,14 @@ struct PatientDashboardView: View {
                 }
                 .buttonStyle(.bordered)
                 Button("View Recommendation") {
+                    
                     Task {
                         do {
                             let response = try await APIService.shared.fetchDoctorRecommendation(reportID: report.id)
                             path.append(
-                                AIRecommendationResponse(
+                                AIRecommendationNavResponse(
                                     report_id: response.report_id,
-                                    ai_recommendation: response.doctor_recommendation ?? "No Recommandation yet. Please wait.", title: "Final Recommendation", canEdit: false
+                                    ai_recommendation: response.doctor_recommendation ?? "No Recommandation yet. Please wait.",title: "Recommendations",canEdit: false
                                 )
                             )
                         } catch {

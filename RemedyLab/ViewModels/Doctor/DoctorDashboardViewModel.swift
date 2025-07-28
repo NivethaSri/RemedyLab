@@ -12,6 +12,21 @@ class DoctorDashboardViewModel: ObservableObject {
     @Published var reports: [DoctorReportResponse] = []
     @Published var isLoading: Bool = false
     @Published var errorMessage: String? = nil
+    init() {
+        NotificationCenter.default.addObserver(
+            forName: Notification.Name("AIRecommendationUpdated"),
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            if let info = notification.object as? [String: String],
+               let reportID = info["reportID"],
+               let newText = info["newText"] {
+                if let index = self?.reports.firstIndex(where: { $0.id == reportID }) {
+                    self?.reports[index].ai_recommendation = newText
+                }
+            }
+        }
+    }
 
     func fetchReports(for doctorID: String) {
         isLoading = true
@@ -46,4 +61,12 @@ class DoctorDashboardViewModel: ObservableObject {
         formatter.dateStyle = .medium
         return formatter.string(from: date)
     }
+    func getAIRecommendation(for report: DoctorReportResponse) async throws -> String {
+            if let existing = report.ai_recommendation, !existing.isEmpty {
+                return existing
+            }
+
+            let apiResponse = try await APIService.shared.generateAIRecommendation(reportID: report.id)
+            return apiResponse.ai_recommendation
+        }
 }

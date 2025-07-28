@@ -11,7 +11,8 @@ struct RemedyLabApp: App {
             Doctor.self,
             HealthReport.self,
             Recommendation.self,
-            User.self // ✅ Add User model here
+            User.self ,
+            DoctorReportEntity.self// ✅ Add User model here
         ])
         let config = ModelConfiguration(schema: schema)
         do {

@@ -22,7 +22,8 @@ class APIService {
     static let shared = APIService()
     private init() {}
 
-    private let baseURL = "http://127.0.0.1:8000/api" // Change when deployed
+   // private let baseURL = "http://127.0.0.1:8000/api" // Change when deployed
+    private let baseURL = "https://c709d3715595.ngrok-free.app/api"
 
     // ✅ POST Method
     func post<T: Codable, U: Codable>(
@@ -259,7 +260,7 @@ struct DoctorReportResponse: Codable, Identifiable, Hashable {
     let uploaded_at: String
     let patient: PatientResponse
     let metrics: [Metric]
-    let ai_recommendation: String?        // ✅ New
+    var ai_recommendation: String?        // ✅ New
     let doctor_recommendation: String?    // ✅ New
 }
 
@@ -271,6 +272,11 @@ struct PatientResponse: Codable, Hashable {
 
 
 struct AIRecommendationResponse: Codable, Hashable {
+    let report_id: String
+    let ai_recommendation: String
+ 
+}
+struct AIRecommendationNavResponse: Codable, Hashable {
     let report_id: String
     let ai_recommendation: String
     let title: String

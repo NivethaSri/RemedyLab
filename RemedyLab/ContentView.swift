@@ -35,7 +35,8 @@ struct ContentView: View {
                     case "patientDashboard":
                         PatientDashboardView(selectedRole: $selectedRole, path: $path)
                             .environmentObject(usertAuthVM)
-                        
+                    
+
                     default:
                         Text("Unknown screen")
                     }
@@ -48,10 +49,10 @@ struct ContentView: View {
                 .navigationDestination(for: DoctorReportResponse.self) { report in
                     ReportViewerView(reportfilePath: report.file_path) // doctor report
                 }
-                .navigationDestination(for: AIRecommendationResponse.self) { navData in
+                .navigationDestination(for: AIRecommendationNavResponse.self) { navData in
                     RecommendationViewerView(
                         reportID: navData.report_id,
-                        initialText: navData.ai_recommendation, title:navData.title,
+                        initialText: navData.ai_recommendation, title: navData.title,
                         canEdit: navData.canEdit
                     )
                 }

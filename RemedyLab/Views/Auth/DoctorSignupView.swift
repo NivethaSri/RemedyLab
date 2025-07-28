@@ -61,10 +61,7 @@ struct DoctorSignupView: View {
                 .buttonStyle(.borderedProminent)
                 .disabled(userAuthVM.isLoading)
             
-            Button("Back to Role Selection") {
-                selectedRole = nil
-            }
-            .buttonStyle(.bordered)
+          
         }
         .padding()
     }

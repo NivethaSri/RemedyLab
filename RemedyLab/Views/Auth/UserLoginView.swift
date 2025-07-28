@@ -12,11 +12,11 @@ struct UserLoginView: View {
     @EnvironmentObject var usertAuthVM: UserAuthViewModel
     @Binding var selectedRole: String?
     @Binding var path: NavigationPath
-    @State private var email: String = "nivetha@gmail.com"
-    @State private var password: String = "test123"
+//    @State private var email: String = "nivetha@gmail.com"
+//    @State private var password: String = "test123"
 
-//    @State private var email = ""
-//    @State private var password = ""
+    @State private var email = ""
+    @State private var password = ""
     @State private var errorMessage = ""
     @State private var isLoading = false
     
@@ -24,21 +24,10 @@ struct UserLoginView: View {
         VStack(spacing: 20) {
             
             // Back Button
-            HStack {
-                Button(action: { selectedRole = nil }) {
-                    HStack {
-                        Image(systemName: "chevron.left")
-                        Text("Back")
-                    }
-                }
-                .buttonStyle(.plain)
-                .padding(.leading)
-                Spacer()
-            }
             
             Spacer().frame(height: 10)
             
-            Text("\(selectedRole ?? "") Login")
+            Text("\((selectedRole ?? "").capitalized) Login")
                 .font(.largeTitle.bold())
             
             TextField("Email", text: $email)
