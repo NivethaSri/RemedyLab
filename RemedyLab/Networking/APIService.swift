@@ -115,6 +115,17 @@ class APIService {
             let message = String(data: data, encoding: .utf8) ?? "Unknown server error"
             print("Success: \(message)")
         }
+        if httpResponse.statusCode == 200 {
+            do {
+                if let jsonObject = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
+                    print("Success: \(jsonObject)")
+                } else {
+                    print("Success: Response is not valid JSON")
+                }
+            } catch {
+                print("Success: Failed to parse JSON - \(error.localizedDescription)")
+            }
+        }
     }
 
     private func decodeResponse<U: Codable>(_ data: Data, responseType: U.Type) throws -> U {
@@ -221,6 +232,17 @@ class APIService {
               throw APIError.decodingError
           }
 
+        if httpResponse.statusCode == 200 {
+            do {
+                if let jsonObject = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
+                    print("Success: \(jsonObject)")
+                } else {
+                    print("Success: Response is not valid JSON")
+                }
+            } catch {
+                print("Success: Failed to parse JSON - \(error.localizedDescription)")
+            }
+        }
           return try JSONDecoder().decode(DoctorRecommendationResponse.self, from: data)
       }
 }

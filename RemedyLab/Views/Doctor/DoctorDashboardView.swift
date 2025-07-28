@@ -45,11 +45,11 @@ struct DoctorDashboardView: View {
     private var contentView: some View {
         if viewModel.isLoading {
             ProgressView("Loading Reports...")
-        } else if let error = viewModel.errorMessage {
-            Text(error).foregroundColor(.red)
         } else if viewModel.reports.isEmpty {
             Text("No reports assigned yet.").foregroundColor(.gray)
-        } else {
+        }else if let error = viewModel.errorMessage {
+            Text(error).foregroundColor(.red)
+        }  else {
             reportsList
         }
     }
