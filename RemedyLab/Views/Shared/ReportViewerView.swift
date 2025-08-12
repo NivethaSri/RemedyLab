@@ -1,5 +1,6 @@
-import SwiftUICore
 import SwiftUI
+import PDFKit
+
 struct ReportViewerView: View {
     let reportfilePath: String
 
@@ -12,7 +13,11 @@ struct ReportViewerView: View {
             if isLoading {
                 ProgressView("Loading PDF...")
             } else if let url = localFileURL {
-                PDFKitMacView(url: url)
+                #if os(iOS)
+                PDFKitiOSView(url: url)
+                #elseif os(macOS)
+                PDFKitViewMac(url: url)
+                #endif
             } else if let error = errorMessage {
                 Text(error).foregroundColor(.red)
             }
@@ -23,17 +28,14 @@ struct ReportViewerView: View {
     private func loadReport() {
         Task {
             do {
-                // Check if file already exists locally
                 let localURL = getLocalFileURL()
                 if FileManager.default.fileExists(atPath: localURL.path) {
                     self.localFileURL = localURL
-                    self.isLoading = false
                 } else {
-                    // Download from API
                     let downloadedURL = try await APIService.shared.downloadReport(filePath: reportfilePath)
                     self.localFileURL = downloadedURL
-                    self.isLoading = false
                 }
+                self.isLoading = false
             } catch {
                 self.errorMessage = error.localizedDescription
                 self.isLoading = false

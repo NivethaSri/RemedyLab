@@ -12,9 +12,9 @@ struct DoctorSignupView: View {
     @State private var contactNumber = ""
     @State private var gender = "Male"
     @State private var errorMessage = ""
-    
+
     @Binding var selectedRole: String?
-    @Binding var path: NavigationPath   // ✅ Path passed from ContentView
+    @Binding var path: NavigationPath
 
     let genders = ["Male", "Female", "Other"]
     let specializations = [
@@ -22,78 +22,166 @@ struct DoctorSignupView: View {
         "General Physician", "Neurologist", "ENT Specialist", "Gynecologist",
         "Oncologist", "Psychiatrist"
     ]
-    
+
     var body: some View {
-        VStack(spacing: 20) {
-            Text("Doctor Sign Up")
-                .font(.largeTitle.bold())
-            
-            TextField("Name", text: $name).textFieldStyle(.roundedBorder)
-            TextField("Email", text: $email).textFieldStyle(.roundedBorder)
+        ZStack {
+            AppColors.doctorGradient.ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                Spacer().frame(height: 60)
+
+                Text("Doctor Sign Up")
+                    .font(.largeTitle.bold())
+                    .foregroundColor(.white)
+                    .shadow(radius: 4)
+
+                Spacer()
+
+                VStack(spacing: 16) {
+                    customTextField("Name", text: $name)
+                    customTextField("Email", text: $email)
+                        .textInputAutocapitalization(.never) // ✅ Works on macOS & iOS
+
+                    customSecureField("Password", text: $password)
+                    customSecureField("Confirm Password", text: $confirmPassword)
+
+                    // 🔹 Specialization Field Styled Like TextField
+                    Menu {
+                        ForEach(specializations, id: \.self) { spec in
+                            Button(action: { specialization = spec }) {
+                                Text(spec)
+                            }
+                        }
+                    } label: {
+                        HStack {
+                            Text(specialization.isEmpty ? "Specialization" : specialization)
+                                .foregroundColor(specialization.isEmpty ? .gray : .primary)
+                            Spacer()
+                            Image(systemName: "chevron.down")
+                                .foregroundColor(.gray)
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 55)
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(30)
+                        .shadow(radius: 3)
+                    }
+
+                    customTextField("Experience (Years)", text: $experience)
 #if os(iOS)
-                .autocapitalization(.none)
+                        .keyboardType(.numberPad)
 #endif
-            SecureField("Password", text: $password).textFieldStyle(.roundedBorder)
-            SecureField("Confirm Password", text: $confirmPassword).textFieldStyle(.roundedBorder)
-            
-            Picker("Select Specialization", selection: $specialization) {
-                ForEach(specializations, id: \.self) { spec in Text(spec).tag(spec) }
-            }.pickerStyle(.menu)
-            
-            TextField("Experience (Years)", text: $experience)
-                .textFieldStyle(.roundedBorder)
-                .onChange(of: experience) { experience = $0.filter { "0123456789".contains($0) } }
-            
-            TextField("Contact Number", text: $contactNumber)
-                .textFieldStyle(.roundedBorder)
-                .onChange(of: contactNumber) { contactNumber = $0.filter { "0123456789".contains($0) } }
-            
-            Picker("Gender", selection: $gender) {
-                ForEach(genders, id: \.self) { Text($0) }
+                        .onChange(of: experience) { experience = $0.filter { "0123456789".contains($0) } }
+
+                    customTextField("Contact Number", text: $contactNumber)
+#if os(iOS)
+                        .keyboardType(.numberPad)
+#endif
+                        .onChange(of: contactNumber) { contactNumber = $0.filter { "0123456789".contains($0) } }
+
+                    // 🔹 Gender Label (Left Aligned)
+                    HStack {
+                        Text("Gender")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                        Spacer()
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 4)
+
+                    Picker("Gender", selection: $gender) {
+                        ForEach(genders, id: \.self) { Text($0) }
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal)
+
+                    if !errorMessage.isEmpty {
+                        Text(errorMessage)
+                            .foregroundColor(.red)
+                            .font(.footnote)
+                            .padding(.top, 4)
+                    }
+
+                    // 🌈 Sign Up Button
+                    Button(action: handleSignup) {
+                        Text("Sign Up")
+                            .font(.headline)
+                            .frame(maxWidth: 220)
+                            .padding()
+                            .background(AppColors.commonGradient)
+                            .foregroundColor(.white)
+                            .cornerRadius(30)
+                            .shadow(color: .black.opacity(0.3), radius: 5, x: 0, y: 4)
+                    }
+                    .disabled(userAuthVM.isLoading)
+                }
+                .frame(maxWidth: 350) // ✅ Keeps iPhone-like width on macOS
+
+                Spacer()
             }
-            .pickerStyle(.segmented)
-            
-            if !errorMessage.isEmpty {
-                Text(errorMessage).foregroundColor(.red).font(.footnote)
-            }
-            
-            Button("Sign Up") { handleSignup() }
-                .buttonStyle(.borderedProminent)
-                .disabled(userAuthVM.isLoading)
-            
-          
+            .padding()
         }
-        .padding()
     }
-    
+
+    // MARK: - Custom TextField
+    private func customTextField(_ placeholder: String, text: Binding<String>) -> some View {
+        TextField(placeholder, text: text)
+            .padding()
+            .background(.ultraThinMaterial)
+            .cornerRadius(30)
+            .shadow(radius: 3)
+    }
+
+    private func customSecureField(_ placeholder: String, text: Binding<String>) -> some View {
+        SecureField(placeholder, text: text)
+            .padding()
+            .background(.ultraThinMaterial)
+            .cornerRadius(30)
+            .shadow(radius: 3)
+    }
+
+    // MARK: - Handle Signup
     private func handleSignup() {
         guard !name.isEmpty, !email.isEmpty, !password.isEmpty, !confirmPassword.isEmpty,
               !specialization.isEmpty, !experience.isEmpty, !contactNumber.isEmpty else {
             errorMessage = "All fields are required"
             return
         }
+
         guard password == confirmPassword else {
             errorMessage = "Passwords do not match"
             return
         }
-        
+
         Task {
             let success = await userAuthVM.signupDoctor(
                 name: name,
                 email: email,
                 password: password,
                 specialization: specialization,
-                contactNumber: contactNumber, experience: experience,
+                contactNumber: contactNumber,
+                experience: experience,
                 gender: gender.lowercased()
             )
-            
+
             if success {
-                // ✅ Navigate to dashboard using shared path
                 path.append("doctorDashboard")
             } else {
-                errorMessage = userAuthVM.errorMessageAuth ?? "Something went wrong try Again"
+                errorMessage = userAuthVM.errorMessageAuth ?? "Something went wrong. Try Again"
             }
         }
     }
 }
 
+struct DoctorSignupView_Previews: PreviewProvider {
+    static var previews: some View {
+        let container = try! ModelContainer(for: User.self)
+
+        DoctorSignupView(
+            selectedRole: .constant("doctor"),
+            path: .constant(NavigationPath())
+        )
+        .environmentObject(UserAuthViewModel(modelContext: container.mainContext))
+    }
+}

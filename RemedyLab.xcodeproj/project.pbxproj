@@ -295,11 +295,13 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = RemedyLab/RemedyLab.entitlements;
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_IDENTITY = "Apple Development: Nivetha Muniappan (UCCU58DF9Y)";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development: Nivetha Muniappan (UCCU58DF9Y)";
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"RemedyLab/Preview Content\"";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 7783ADBQ36;
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 7783ADBQ36;
 				"DEVELOPMENT_TEAM[sdk=macosx*]" = 7783ADBQ36;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -323,6 +325,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.treatment.RemedyLab;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "RemedyLab Dev Profile";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -338,11 +341,13 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = RemedyLab/RemedyLab.entitlements;
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_IDENTITY = "Apple Development: Nivetha Muniappan (UCCU58DF9Y)";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development: Nivetha Muniappan (UCCU58DF9Y)";
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"RemedyLab/Preview Content\"";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 7783ADBQ36;
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 7783ADBQ36;
 				"DEVELOPMENT_TEAM[sdk=macosx*]" = 7783ADBQ36;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -366,6 +371,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.treatment.RemedyLab;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "RemedyLab Dev Profile";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
 				SWIFT_EMIT_LOC_STRINGS = YES;

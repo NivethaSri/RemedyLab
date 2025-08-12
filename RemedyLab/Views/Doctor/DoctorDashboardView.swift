@@ -4,27 +4,24 @@ struct DoctorDashboardView: View {
     @Binding var selectedRole: String?
     @Binding var path: NavigationPath
     @EnvironmentObject var userAuthVM: UserAuthViewModel
-    @StateObject private var viewModel = DoctorDashboardViewModel()
+    @StateObject var viewModel = DoctorDashboardViewModel()
     @State private var selectedReport: DoctorReportResponse?
-    @Environment(\.scenePhase) private var scenePhase
-    @State private var previousPathCount = 0
-    @State private var loadingReportID: String? // ✅ Track which report is loading
+    @State private var loadingReportID: String?
 
     var body: some View {
-        VStack(spacing: 20) {
-            headerView
-            contentView
-            logoutButton
-        }
-        .onAppear {
-            reloadReports()
-        }
-        .onChange(of: path.count) { oldCount, newCount in
-            if newCount < oldCount {
-                reloadReports() // Reload when user navigates back
+        ZStack {
+            AppColors.doctorGradient.ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                headerView
+                Spacer(minLength: 10)
+                contentView.frame(maxWidth: 500).padding(.horizontal)
+                Spacer()
+                logoutButton.padding(.bottom, 20)
             }
-            previousPathCount = newCount
+            .padding()
         }
+        .onAppear { reloadReports() }
     }
 
     private func reloadReports() {
@@ -33,111 +30,162 @@ struct DoctorDashboardView: View {
         }
     }
 
-    // ✅ Header
+    // MARK: - Header
     private var headerView: some View {
-        Text("Welcome, Dr. \(userAuthVM.currentUser?.name ?? "Doctor")!")
-            .font(.largeTitle)
-            .padding()
+        VStack(spacing: 5) {
+            Text("Welcome,")
+                .font(.title3)
+                .foregroundColor(.white.opacity(0.8))
+            Text("Dr. \(userAuthVM.currentUser?.name ?? "Doctor")")
+                .font(.largeTitle.bold())
+                .foregroundColor(.white)
+                .shadow(radius: 4)
+        }
     }
 
-    // ✅ Main Content
+    // MARK: - Main Content
     @ViewBuilder
     private var contentView: some View {
         if viewModel.isLoading {
             ProgressView("Loading Reports...")
+                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+        } else if let error = viewModel.errorMessage {
+            Text(error)
+                .foregroundColor(.red)
+                .padding()
+                .background(.ultraThinMaterial)
+                .cornerRadius(12)
         } else if viewModel.reports.isEmpty {
-            Text("No reports assigned yet.").foregroundColor(.gray)
-        }else if let error = viewModel.errorMessage {
-            Text(error).foregroundColor(.red)
-        }  else {
-            reportsList
-        }
-    }
+            Text("No reports assigned yet.")
+                .foregroundColor(.white.opacity(0.8))
+                .padding()
+        } else {
+            ScrollView {
+                VStack(spacing: 16) {
+                    ForEach(viewModel.groupedReports.keys.sorted(by: >), id: \.self) { date in
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text(viewModel.dateFormatted(date))
+                                .font(.headline)
+                                .foregroundColor(.white)
 
-    // ✅ Reports List
-    private var reportsList: some View {
-        List {
-            ForEach(viewModel.groupedReports.keys.sorted(by: >), id: \.self) { date in
-                Section(header: Text(viewModel.dateFormatted(date))) {
-                    ForEach(viewModel.groupedReports[date] ?? [], id: \.id) { report in
-                        reportRow(report)
+                            VStack(spacing: 12) {
+                                ForEach(viewModel.groupedReports[date] ?? [], id: \.id) { report in
+                                    reportCard(report)
+                                }
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
+                .padding(.horizontal)
             }
         }
     }
 
-    // ✅ Report Row
-    private func reportRow(_ report: DoctorReportResponse) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(report.file_name).font(.headline)
+    // MARK: - Report Card
+    private func reportCard(_ report: DoctorReportResponse) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(report.file_name)
+                .font(.headline)
+                .foregroundColor(.primary)
+                .lineLimit(2)
+                .truncationMode(.tail)
+
             Text("Patient: \(report.patient.name)")
                 .font(.subheadline)
                 .foregroundColor(.gray)
 
-            HStack(spacing: 16) {
-                Button("View Report") {
+            HStack(spacing: 8) {
+                // 📄 View Report
+                Button {
                     selectedReport = report
                     path.append(report)
+                } label: {
+                    Label("View", systemImage: "doc.text.magnifyingglass")
+                        .font(.footnote.bold())
+                        .frame(minWidth: 0, maxWidth: .infinity)
+                        .padding(8)
+                        .background(Color.white)
+                        .foregroundColor(AppColors.doctorPrimary)
+                        .cornerRadius(10)
                 }
-                .buttonStyle(.bordered)
 
-                // ✅ AI Recommendation Button
+                // 🤖 AI Recommendation
                 if loadingReportID == report.id {
-                    ProgressView() // 🔄 Show loading indicator
-                        .progressViewStyle(CircularProgressViewStyle())
+                    ProgressView()
                         .frame(width: 30, height: 30)
                 } else {
-                    Button("View AI Recommendation") {
+                    Button {
                         Task {
-                            loadingReportID = report.id // Start loading
+                            loadingReportID = report.id
                             do {
                                 let aiText = try await viewModel.getAIRecommendation(for: report)
-                                let navData = AIRecommendationNavResponse(
+                                path.append(AIRecommendationNavResponse(
                                     report_id: report.id,
                                     ai_recommendation: aiText,
                                     title: "AI Recommendation",
                                     canEdit: true
-                                )
-                                selectedReport = report
-                                path.append(navData)
+                                ))
                             } catch {
-                                print("❌ Error generating recommendation:", error.localizedDescription)
+                                print("❌ Error: \(error)")
                             }
-                            loadingReportID = nil // Stop loading
+                            loadingReportID = nil
                         }
+                    } label: {
+                        Label("AI Reco", systemImage: "wand.and.stars")
+                            .font(.footnote.bold())
+                            .frame(minWidth: 0, maxWidth: .infinity)
+                            .padding(8)
+                            .background(AppColors.doctorPrimary)
+                            .foregroundColor(.white)
+                            .cornerRadius(10)
                     }
-                    .buttonStyle(.borderedProminent)
                 }
 
-                // ✅ Final Recommendation Button
-                Button("Final Recommendation") {
+                // ✅ Final Recommendation
+                Button {
                     if let doctorRecommendation = report.doctor_recommendation {
-                        path.append(
-                            AIRecommendationNavResponse(
-                                report_id: report.id,
-                                ai_recommendation: doctorRecommendation,
-                                title: "Final Recommendation",
-                                canEdit: true
-                            )
-                        )
+                        path.append(AIRecommendationNavResponse(
+                            report_id: report.id,
+                            ai_recommendation: doctorRecommendation,
+                            title: "Final Recommendation",
+                            canEdit: true
+                        ))
                     }
+                } label: {
+                    Label("Final", systemImage: "checkmark.seal")
+                        .font(.footnote.bold())
+                        .frame(minWidth: 0, maxWidth: .infinity)
+                        .padding(8)
+                        .background(Color.green)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
                 }
-                .buttonStyle(.borderedProminent)
                 .disabled(report.doctor_recommendation == nil)
             }
+            .frame(height: 45)
         }
         .padding()
-        .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.1)))
+        .background(.ultraThinMaterial)
+        .cornerRadius(16)
+        .shadow(radius: 4)
     }
 
-    // ✅ Logout
+    // MARK: - Logout Button
     private var logoutButton: some View {
-        Button("Logout") {
+        Button(action: {
             userAuthVM.logout()
             selectedRole = nil
             path.removeLast(path.count)
+        }) {
+            Text("🚪 Logout")
+                .font(.headline)
+                .frame(maxWidth: 250)
+                .padding()
+                .background(Color.red.opacity(0.8))
+                .foregroundColor(.white)
+                .cornerRadius(30)
+                .shadow(radius: 4)
         }
-        .buttonStyle(.borderedProminent)
     }
 }
